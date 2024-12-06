@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Machine Unlearning Demo</title>
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      display: flex;
+      justify-content: center;
+      padding: 50px;
+    }
+    canvas {
+      border: 1px solid black;
+      display: block;
+      margin: 20px auto;
+      cursor: crosshair;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+    <section>
+        <h1>Draw a number</h1>
+        <canvas id="canvas" width="400" height="400"></canvas>
+        <br>
+        <button id="clear">Clear</button>
+        <button id="predict">Predict</button>
+    </section>
+    <section style="display: flex; flex-direction: column; margin-left: 50px; justify-content: center;">
+        <div style="width: 300px; background-color: #EEEEEE; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+            <h2>Normal Model Prediction:</h2>
+            <div style="display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between;">
+                    <h3>Prediction:</h3>
+                    <h3 id="prediction"></h3>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <h3>Certainty:</h3>
+                    <h3 id="prediction_certainty"></h3>
+                </div>
+            </div>
+        </div>
+        <div style="width: 300px; background-color: #EEEEEE; padding: 10px; border-radius: 10px;">
+            <h2>Unlearned 3 Model Prediction:</h2>
+            <div style="display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between;">
+                    <h3>Prediction:</h3>
+                    <h3 id="unlearned"></h3>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <h3>Certainty:</h3>
+                    <h3 id="unlearned_certainty"></h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // drawing
+        canvas.addEventListener('mousedown', () => isDrawing = true);
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mousemove', draw);
+        function draw(event) {
+          if (isDrawing){
+              const rect = canvas.getBoundingClientRect();
+              const x = event.clientX - rect.left;
+              const y = event.clientY - rect.top;
+
+              ctx.strokeStyle = "white";
+              ctx.lineWidth = 20;
+              ctx.lineJoin = "round";
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.lineTo(x, y);
+              ctx.stroke();
+          }
+        }
+
+        // clear button
+        document.getElementById('clear').addEventListener('click', () => {
+          ctx.fillStyle = "black";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // predict button
+        document.getElementById('predict').addEventListener('click', () => {
+            const img = canvas.toDataURL('image/png');
+            fetch("http://127.0.0.1:5000/predict", {
+                method: "POST",
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: img })
+            })
+            .then((response) => response.json())
+            .then((json) => {
+                console.log(json)
+                document.getElementById('prediction').innerText = json.prediction;
+                document.getElementById('prediction_certainty').innerText = json.certainty;
+                document.getElementById('unlearned').innerText = json.unlearned_prediction;
+                document.getElementById('unlearned_certainty').innerText = json.unlearned_certainty;
+            });
+        })
+    </script>
+</body>
+
+</html>
